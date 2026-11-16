@@ -14,7 +14,9 @@ from core.history_store import (
 
 from core.game_history import (
     load_games,
-    get_best_score
+    get_best_score,
+    delete_game,
+    clear_games
 )
 
 
@@ -244,7 +246,7 @@ class HistoryPage(ctk.CTkFrame):
         self.clear_button.configure(
             state=(
                 "normal"
-                if self.active_tab == "history"
+                if self.active_tab in ("history", "games")
                 else "disabled"
             )
         )
@@ -447,6 +449,24 @@ class HistoryPage(ctk.CTkFrame):
         elif self.active_tab == "history":
             delete_history(index)
 
+        elif self.active_tab == "games":
+            try:
+                deleted = delete_game(index)
+            except OSError:
+                self.show_message(
+                    "Could not delete game history.",
+                    error=True
+                )
+                return
+
+            if not deleted:
+                self.show_message(
+                    "Game not found. Please refresh.",
+                    error=True
+                )
+                self.refresh_data()
+                return
+
         self.show_message("Record deleted.")
         self.refresh_data()
 
@@ -518,6 +538,16 @@ class HistoryPage(ctk.CTkFrame):
                 font=("Segoe UI", 15, "bold"),
                 text_color=TEXT
             ).pack(side="left")
+
+            ctk.CTkButton(
+                top,
+                text="Delete",
+                width=70,
+                height=32,
+                fg_color="#991B1B",
+                hover_color="#7F1D1D",
+                command=lambda i=index: self.remove_record(i)
+            ).pack(side="right", padx=(12, 0))
 
             ctk.CTkLabel(
                 top,
@@ -593,13 +623,17 @@ class HistoryPage(ctk.CTkFrame):
                 "No matching games found."
             )
 
-    # CLEAR DETECTION HISTORY
+    # CLEAR HISTORY
     def confirm_clear_history(self):
-        if self.active_tab != "history":
+        if self.active_tab not in ("history", "games"):
             return
 
+        is_games = self.active_tab == "games"
+        history_name = "Game" if is_games else "Detection"
+        clear_records = clear_games if is_games else clear_history
+
         dialog = ctk.CTkToplevel(self)
-        dialog.title("Clear Detection History")
+        dialog.title(f"Clear {history_name} History")
         dialog.geometry("360x190")
         dialog.resizable(False, False)
         dialog.transient(self.winfo_toplevel())
@@ -607,13 +641,17 @@ class HistoryPage(ctk.CTkFrame):
 
         ctk.CTkLabel(
             dialog,
-            text="Delete all detection history?",
+            text=f"Delete all {history_name.lower()} history?",
             font=("Segoe UI", 17, "bold")
         ).pack(pady=(25, 8))
 
         ctk.CTkLabel(
             dialog,
-            text="Saved colors and games will remain.",
+            text=(
+                "Saved colors and detections will remain."
+                if is_games else
+                "Saved colors and games will remain."
+            ),
             text_color=MUTED
         ).pack(pady=(0, 20))
 
@@ -632,10 +670,19 @@ class HistoryPage(ctk.CTkFrame):
         ).pack(side="left", padx=8)
 
         def clear_and_close():
-            clear_history()
+            try:
+                clear_records()
+            except OSError:
+                dialog.destroy()
+                self.show_message(
+                    f"Could not clear {history_name.lower()} history.",
+                    error=True
+                )
+                return
+
             dialog.destroy()
             self.show_message(
-                "Detection history cleared."
+                f"{history_name} history cleared."
             )
             self.refresh_data()
 

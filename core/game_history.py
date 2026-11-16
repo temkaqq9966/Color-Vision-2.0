@@ -25,6 +25,18 @@ def load_games():
     return []
 
 
+def save_games(games):
+    GAME_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(GAME_FILE, "w", encoding="utf-8") as file:
+        json.dump(
+            games,
+            file,
+            indent=4,
+            ensure_ascii=False
+        )
+
+
 def save_game(total_score, round_scores):
     games = load_games()
 
@@ -37,17 +49,24 @@ def save_game(total_score, round_scores):
 
     games.insert(0, game)
 
-    GAME_FILE.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(GAME_FILE, "w", encoding="utf-8") as file:
-        json.dump(
-            games,
-            file,
-            indent=4,
-            ensure_ascii=False
-        )
+    save_games(games)
 
     return game
+
+
+def delete_game(index):
+    games = load_games()
+
+    if 0 <= index < len(games):
+        games.pop(index)
+        save_games(games)
+        return True
+
+    return False
+
+
+def clear_games():
+    save_games([])
 
 
 def get_best_score():
