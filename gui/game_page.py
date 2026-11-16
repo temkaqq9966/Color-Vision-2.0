@@ -509,7 +509,7 @@ class GamePage(ctk.CTkFrame):
 
     def start_guessing(self):
         self.phase = "guess"
-        self.time_left = 7
+        self.time_left = 15
 
         self.status_label.configure(
             text="Recreate the color from memory!"
