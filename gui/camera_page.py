@@ -5,19 +5,9 @@ import tkinter as tk
 import customtkinter as ctk
 
 from PIL import Image, ImageTk
-from pathlib import Path
-from datetime import datetime
-
-from core.color_detector import (
-    detect_center_color,
-    detect_point_color
-)
-
+from core.color_detector import detect_center_color, detect_point_color
 from core.color_matcher import add_custom_color
 from core.history_store import add_history
-
-
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class CameraPage(ctk.CTkFrame):
@@ -41,7 +31,6 @@ class CameraPage(ctk.CTkFrame):
         self.selected_point = None
 
         self.camera_photo = None
-
         self.image_x = 0
         self.image_y = 0
         self.image_width = 0
@@ -50,7 +39,6 @@ class CameraPage(ctk.CTkFrame):
         # PERFORMANCE
         self.detect_interval = 0.15
         self.last_detect_time = 0
-
         self.frame_count = 0
         self.last_fps_time = time.perf_counter()
         self.fps = 0
@@ -69,10 +57,11 @@ class CameraPage(ctk.CTkFrame):
 
         self.build_ui()
 
-    # -------------------------
-    # UI
-    # -------------------------
+    # =====================================
+    # USER INTERFACE
+    # =====================================
     def build_ui(self):
+
         header = ctk.CTkFrame(
             self, fg_color="transparent"
         )
@@ -116,14 +105,19 @@ class CameraPage(ctk.CTkFrame):
         content.grid_columnconfigure(1, weight=2)
         content.grid_rowconfigure(0, weight=1)
 
+        # =================================
+        # LEFT PANEL
+        # =================================
         left = ctk.CTkFrame(
             content,
             fg_color="#171C2A",
             corner_radius=18
         )
         left.grid(
-            row=0, column=0,
-            sticky="nsew", padx=(0, 10)
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 10)
         )
 
         camera_header = ctk.CTkFrame(
@@ -186,6 +180,7 @@ class CameraPage(ctk.CTkFrame):
             "Camera is not running"
         )
 
+        # DETECTION MODE
         mode_frame = ctk.CTkFrame(
             left, fg_color="transparent"
         )
@@ -199,7 +194,9 @@ class CameraPage(ctk.CTkFrame):
             fg_color="#334155",
             command=self.toggle_selection_mode
         )
-        self.mode_button.pack(side="left", padx=5)
+        self.mode_button.pack(
+            side="left", padx=5
+        )
 
         ctk.CTkLabel(
             mode_frame,
@@ -208,6 +205,7 @@ class CameraPage(ctk.CTkFrame):
             font=("Segoe UI", 12)
         ).pack(side="left", padx=10)
 
+        # CAMERA CONTROLS
         controls = ctk.CTkFrame(
             left, fg_color="transparent"
         )
@@ -220,7 +218,9 @@ class CameraPage(ctk.CTkFrame):
             height=40,
             command=self.start_camera
         )
-        self.start_button.pack(side="left", padx=4)
+        self.start_button.pack(
+            side="left", padx=4
+        )
 
         ctk.CTkButton(
             controls,
@@ -240,24 +240,22 @@ class CameraPage(ctk.CTkFrame):
             state="disabled",
             command=self.toggle_freeze
         )
-        self.freeze_button.pack(side="left", padx=4)
+        self.freeze_button.pack(
+            side="left", padx=4
+        )
 
-        ctk.CTkButton(
-            controls,
-            text="Screenshot",
-            width=110,
-            height=40,
-            fg_color="#374151",
-            command=self.screenshot
-        ).pack(side="left", padx=4)
-
+        # =================================
+        # RIGHT PANEL
+        # =================================
         right = ctk.CTkScrollableFrame(
             content,
             fg_color="#171C2A",
             corner_radius=18
         )
         right.grid(
-            row=0, column=1, sticky="nsew"
+            row=0,
+            column=1,
+            sticky="nsew"
         )
 
         ctk.CTkLabel(
@@ -265,7 +263,9 @@ class CameraPage(ctk.CTkFrame):
             text="COLOR INFORMATION",
             font=("Segoe UI", 16, "bold")
         ).pack(
-            anchor="w", padx=18, pady=(20, 10)
+            anchor="w",
+            padx=18,
+            pady=(20, 10)
         )
 
         self.color_preview = ctk.CTkFrame(
@@ -320,7 +320,9 @@ class CameraPage(ctk.CTkFrame):
             text_color="#94A3B8",
             font=("Segoe UI", 12, "bold")
         )
-        self.detection_label.pack(pady=(12, 8))
+        self.detection_label.pack(
+            pady=(12, 8)
+        )
 
         ctk.CTkLabel(
             right,
@@ -346,7 +348,9 @@ class CameraPage(ctk.CTkFrame):
             command=self.save_custom_color
         )
         self.save_button.pack(
-            fill="x", padx=18, pady=12
+            fill="x",
+            padx=18,
+            pady=12
         )
 
         self.message_label = ctk.CTkLabel(
@@ -357,10 +361,11 @@ class CameraPage(ctk.CTkFrame):
         )
         self.message_label.pack(pady=5)
 
-    # -------------------------
-    # DETECTION
-    # -------------------------
+    # =====================================
+    # COLOR DETECTION
+    # =====================================
     def detect_color(self, frame):
+
         if (
             self.selection_mode == "point"
             and self.selected_point is not None
@@ -371,12 +376,14 @@ class CameraPage(ctk.CTkFrame):
         return detect_center_color(frame)
 
     def reset_stabilization(self):
+
         self.candidate_name = None
         self.candidate_count = 0
         self.stable_name = None
         self.stable_result = None
 
     def process_detection(self, result):
+
         name = result["name"]
 
         if name == self.candidate_name:
@@ -386,18 +393,24 @@ class CameraPage(ctk.CTkFrame):
             self.candidate_count = 1
 
         if self.candidate_count >= self.required_matches:
+
             self.stable_name = name
             self.stable_result = result
-
             self.current_color = result
+
             self.update_color_info(result)
             self.log_detection(result)
 
         elif self.stable_result is None:
+
             self.current_color = result
             self.update_color_info(result)
 
+    # =====================================
+    # HISTORY
+    # =====================================
     def log_detection(self, result):
+
         now = time.perf_counter()
         name = result["name"]
 
@@ -419,10 +432,11 @@ class CameraPage(ctk.CTkFrame):
             except OSError as error:
                 print("History error:", error)
 
-    # -------------------------
-    # CAMERA
-    # -------------------------
+    # =====================================
+    # START CAMERA
+    # =====================================
     def start_camera(self):
+
         if self.running or self.closing:
             return
 
@@ -431,6 +445,7 @@ class CameraPage(ctk.CTkFrame):
         )
 
         if not self.camera.isOpened():
+
             self.camera.release()
             self.camera = None
 
@@ -466,13 +481,16 @@ class CameraPage(ctk.CTkFrame):
         self.mode_button.configure(
             text="Mode: Center Detection"
         )
+
         self.start_button.configure(
             state="disabled"
         )
+
         self.freeze_button.configure(
             state="normal",
             text="Freeze Color"
         )
+
         self.save_button.configure(
             state="disabled"
         )
@@ -481,6 +499,7 @@ class CameraPage(ctk.CTkFrame):
             text="● LIVE",
             text_color="#4ADE80"
         )
+
         self.detection_label.configure(
             text="Detection: LIVE",
             text_color="#4ADE80"
@@ -488,7 +507,11 @@ class CameraPage(ctk.CTkFrame):
 
         self.update_camera()
 
+    # =====================================
+    # UPDATE CAMERA
+    # =====================================
     def update_camera(self):
+
         self.after_id = None
 
         if (
@@ -513,10 +536,13 @@ class CameraPage(ctk.CTkFrame):
         elapsed = now - self.last_fps_time
 
         if elapsed >= 1:
+
             self.fps = self.frame_count / elapsed
+
             self.fps_label.configure(
                 text=f"{self.fps:.1f} FPS"
             )
+
             self.frame_count = 0
             self.last_fps_time = now
 
@@ -525,6 +551,7 @@ class CameraPage(ctk.CTkFrame):
             and now - self.last_detect_time
             >= self.detect_interval
         ):
+
             result = self.detect_color(frame)
             self.process_detection(result)
             self.last_detect_time = now
@@ -532,14 +559,17 @@ class CameraPage(ctk.CTkFrame):
         self.render_frame(frame)
 
         if self.running and not self.closing:
+
             self.after_id = self.after(
-                30, self.update_camera
+                30,
+                self.update_camera
             )
 
-    # -------------------------
-    # MOUSE
-    # -------------------------
+    # =====================================
+    # MOUSE SELECTION
+    # =====================================
     def on_camera_click(self, event):
+
         if (
             not self.running
             or self.last_frame is None
@@ -579,6 +609,7 @@ class CameraPage(ctk.CTkFrame):
         self.reset_stabilization()
 
         if not self.frozen:
+
             result = self.detect_color(
                 self.last_frame
             )
@@ -586,23 +617,33 @@ class CameraPage(ctk.CTkFrame):
 
         self.render_frame(self.last_frame)
 
+    # =====================================
+    # TOGGLE SELECTION MODE
+    # =====================================
     def toggle_selection_mode(self):
+
         if self.selection_mode == "center":
+
             self.selection_mode = "point"
 
             if (
                 self.selected_point is None
                 and self.last_frame is not None
             ):
+
                 h, w = self.last_frame.shape[:2]
+
                 self.selected_point = (
-                    w // 2, h // 2
+                    w // 2,
+                    h // 2
                 )
 
             self.mode_button.configure(
                 text="Mode: Selected Point"
             )
+
         else:
+
             self.selection_mode = "center"
             self.selected_point = None
 
@@ -615,10 +656,11 @@ class CameraPage(ctk.CTkFrame):
         if self.last_frame is not None:
             self.render_frame(self.last_frame)
 
-    # -------------------------
-    # CANVAS
-    # -------------------------
+    # =====================================
+    # CANVAS MESSAGE
+    # =====================================
     def show_canvas_message(self, message):
+
         self.camera_canvas.delete("all")
 
         width = max(
@@ -637,14 +679,22 @@ class CameraPage(ctk.CTkFrame):
         )
 
     def on_canvas_resize(self, event):
+
         if self.running and self.last_frame is not None:
+
             self.render_frame(self.last_frame)
+
         elif not self.running:
+
             self.show_canvas_message(
                 "Camera is not running"
             )
 
+    # =====================================
+    # RENDER CAMERA FRAME
+    # =====================================
     def render_frame(self, frame):
+
         if self.closing:
             return
 
@@ -674,6 +724,7 @@ class CameraPage(ctk.CTkFrame):
         self.image_x = (
             canvas_width - new_width
         ) // 2
+
         self.image_y = (
             canvas_height - new_height
         ) // 2
@@ -684,6 +735,7 @@ class CameraPage(ctk.CTkFrame):
             self.selection_mode == "point"
             and self.selected_point is not None
         ):
+
             x, y = self.selected_point
 
             cv2.circle(
@@ -693,6 +745,7 @@ class CameraPage(ctk.CTkFrame):
                 (255, 255, 255),
                 2
             )
+
             cv2.circle(
                 display_frame,
                 (x, y),
@@ -700,7 +753,9 @@ class CameraPage(ctk.CTkFrame):
                 (0, 255, 255),
                 -1
             )
+
         else:
+
             cx = frame_width // 2
             cy = frame_height // 2
 
@@ -713,6 +768,7 @@ class CameraPage(ctk.CTkFrame):
             )
 
         if self.frozen:
+
             cv2.putText(
                 display_frame,
                 "COLOR FROZEN",
@@ -748,31 +804,37 @@ class CameraPage(ctk.CTkFrame):
             image=self.camera_photo
         )
 
-    # -------------------------
-    # COLOR INFO
-    # -------------------------
+    # =====================================
+    # UPDATE COLOR INFORMATION
+    # =====================================
     def update_color_info(self, result):
+
         rgb = result["rgb"]
         hsv = result["hsv"]
 
         self.color_preview.configure(
             fg_color=result["hex"]
         )
+
         self.name_label.configure(
             text=result["name"]
         )
+
         self.source_label.configure(
             text=result["source"]
         )
+
         self.hex_label.configure(
             text=f"HEX: {result['hex']}"
         )
+
         self.rgb_label.configure(
             text=(
                 f"RGB: {rgb[0]}, "
                 f"{rgb[1]}, {rgb[2]}"
             )
         )
+
         self.hsv_label.configure(
             text=(
                 f"HSV: {hsv[0]}, "
@@ -780,10 +842,11 @@ class CameraPage(ctk.CTkFrame):
             )
         )
 
-    # -------------------------
-    # FREEZE
-    # -------------------------
+    # =====================================
+    # FREEZE COLOR
+    # =====================================
     def toggle_freeze(self):
+
         if (
             not self.running
             or self.current_color is None
@@ -791,7 +854,9 @@ class CameraPage(ctk.CTkFrame):
             return
 
         if not self.frozen:
+
             self.frozen = True
+
             self.frozen_color = (
                 self.current_color.copy()
             )
@@ -800,6 +865,7 @@ class CameraPage(ctk.CTkFrame):
                 text="Resume Detection",
                 fg_color="#2563EB"
             )
+
             self.save_button.configure(
                 state="normal"
             )
@@ -808,6 +874,7 @@ class CameraPage(ctk.CTkFrame):
                 text="● FROZEN",
                 text_color="#FBBF24"
             )
+
             self.detection_label.configure(
                 text="Detection: FROZEN",
                 text_color="#FBBF24"
@@ -817,10 +884,15 @@ class CameraPage(ctk.CTkFrame):
                 text="Enter a name and save the color.",
                 text_color="#FBBF24"
             )
+
         else:
             self.resume_detection()
 
+    # =====================================
+    # RESUME DETECTION
+    # =====================================
     def resume_detection(self):
+
         self.frozen = False
         self.frozen_color = None
 
@@ -828,6 +900,7 @@ class CameraPage(ctk.CTkFrame):
             text="Freeze Color",
             fg_color="#7C3AED"
         )
+
         self.save_button.configure(
             state="disabled"
         )
@@ -836,21 +909,24 @@ class CameraPage(ctk.CTkFrame):
             text="● LIVE",
             text_color="#4ADE80"
         )
+
         self.detection_label.configure(
             text="Detection: LIVE",
             text_color="#4ADE80"
         )
 
-    # -------------------------
-    # SAVE
-    # -------------------------
+    # =====================================
+    # SAVE CUSTOM COLOR
+    # =====================================
     def save_custom_color(self):
+
         if not self.frozen or self.frozen_color is None:
             return
 
         name = self.name_entry.get().strip()
 
         if not name:
+
             self.message_label.configure(
                 text="Enter a color name.",
                 text_color="#F87171"
@@ -863,6 +939,7 @@ class CameraPage(ctk.CTkFrame):
         )
 
         if success:
+
             self.name_entry.delete(0, "end")
 
             self.message_label.configure(
@@ -872,32 +949,11 @@ class CameraPage(ctk.CTkFrame):
 
             self.resume_detection()
 
-    # -------------------------
-    # SCREENSHOT
-    # -------------------------
-    def screenshot(self):
-        if self.last_frame is None:
-            return
-
-        folder = BASE_DIR / "screenshots"
-        folder.mkdir(exist_ok=True)
-
-        filename = datetime.now().strftime(
-            "color_%Y%m%d_%H%M%S_%f.png"
-        )
-
-        path = folder / filename
-
-        if cv2.imwrite(str(path), self.last_frame):
-            self.message_label.configure(
-                text=f"Saved: {filename}",
-                text_color="#4ADE80"
-            )
-
-    # -------------------------
-    # STOP / BACK
-    # -------------------------
+    # =====================================
+    # STOP CAMERA
+    # =====================================
     def stop_camera(self):
+
         self.running = False
         self.frozen = False
         self.frozen_color = None
@@ -905,6 +961,7 @@ class CameraPage(ctk.CTkFrame):
         self.last_frame = None
 
         if self.after_id is not None:
+
             timer = self.after_id
             self.after_id = None
 
@@ -914,6 +971,7 @@ class CameraPage(ctk.CTkFrame):
                 pass
 
         if self.camera is not None:
+
             camera = self.camera
             self.camera = None
             camera.release()
@@ -924,11 +982,13 @@ class CameraPage(ctk.CTkFrame):
         self.start_button.configure(
             state="normal"
         )
+
         self.freeze_button.configure(
             text="Freeze Color",
             state="disabled",
             fg_color="#7C3AED"
         )
+
         self.save_button.configure(
             state="disabled"
         )
@@ -937,11 +997,15 @@ class CameraPage(ctk.CTkFrame):
             text="● OFFLINE",
             text_color="#F87171"
         )
+
         self.detection_label.configure(
             text="Detection: OFFLINE",
             text_color="#94A3B8"
         )
-        self.fps_label.configure(text="0 FPS")
+
+        self.fps_label.configure(
+            text="0 FPS"
+        )
 
         self.camera_photo = None
 
@@ -949,7 +1013,11 @@ class CameraPage(ctk.CTkFrame):
             "Camera is not running"
         )
 
+    # =====================================
+    # BACK TO DASHBOARD
+    # =====================================
     def back(self):
+
         if self.closing:
             return
 
@@ -957,7 +1025,11 @@ class CameraPage(ctk.CTkFrame):
         self.stop_camera()
         self.go_back()
 
+    # =====================================
+    # CLEANUP
+    # =====================================
     def destroy(self):
+
         self.closing = True
         self.stop_camera()
         super().destroy()
